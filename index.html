@@ -66,6 +66,18 @@
     const markers = {};
     let role = 'citizen';
 
+    // seed bins if database is empty
+    function seedBins() {
+      const sampleBins = {
+        "bin1": { lat: -1.28333, lng: 36.81667, level: 0, status: "empty", lastUpdated: Date.now() },
+        "bin2": { lat: -1.2921, lng: 36.8219, level: 40, status: "half", lastUpdated: Date.now() },
+        "bin3": { lat: -1.3000, lng: 36.8200, level: 100, status: "full", lastUpdated: Date.now() },
+        "bin4": { lat: -1.2765, lng: 36.8172, level: 60, status: "half", lastUpdated: Date.now() },
+        "bin5": { lat: -1.2890, lng: 36.8300, level: 100, status: "full", lastUpdated: Date.now() }
+      };
+      db.ref("bins").set(sampleBins);
+    }
+
     function initApp(){
       // default center Nairobi
       map = L.map('map').setView([-1.28333, 36.81667], 13);
@@ -80,7 +92,12 @@
       document.getElementById('role-collector').onclick = ()=> setRole('collector');
       setRole('citizen');
 
-      // listen to Firebase bins
+      // check if bins exist, otherwise seed
+      db.ref("bins").once("value").then(snap => {
+        if(!snap.exists()) seedBins();
+      });
+
+      // listen to bins
       db.ref('bins').on('value', snap => {
         const bins = snap.val() || {};
         updateMarkers(bins);
@@ -96,7 +113,6 @@
     }
 
     function updateMarkers(bins){
-      // clear markers not in DB
       for(const id in markers){
         if(!bins[id]){ map.removeLayer(markers[id]); delete markers[id]; }
       }
@@ -163,7 +179,6 @@
       container.prepend(div);
     }
 
-    // start app
     window.onload = initApp;
   </script>
 </body>
