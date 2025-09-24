@@ -3,14 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Smart Waste Management — Demo</title>
+  <title>Smart Waste Management — Demo (Free)</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
   <style>
     body{ font-family: system-ui, sans-serif; margin:0; padding:0; }
     header{ display:flex; justify-content:space-between; align-items:center; padding:10px 16px; background:#222; color:#fff }
-    #role-switch button{ margin-left:8px; padding:6px 10px }
+    #role-switch button{ margin-left:8px; padding:6px 10px; border:none; border-radius:6px; background:#555; color:#fff; cursor:pointer; }
+    #role-switch button.active{ background:#28a745; }
+    #map{ height:60vh; }
     #info{ padding:12px }
     #stats{ font-weight:600; margin-bottom:8px }
-    button{ padding:8px 12px; cursor:pointer }
     #alerts{ margin-top:12px; padding:10px; border:1px solid #ccc; background:#f9f9f9 }
     .alert{ padding:6px 0; border-bottom:1px solid #eee }
   </style>
@@ -25,7 +27,7 @@
   </header>
 
   <main>
-    <div id="map" style="height:60vh"></div>
+    <div id="map"></div>
 
     <section id="info">
       <div id="stats">Loading stats...</div>
@@ -52,10 +54,8 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 
-  <!-- Google Maps: replace YOUR_GOOGLE_MAPS_API_KEY -->
-  <script async defer
-    src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&callback=initApp">
-  </script>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
   <script>
     // Initialize Firebase
@@ -64,105 +64,107 @@
 
     let map;
     const markers = {};
-    let role = 'citizen'; // or 'collector'
+    let role = 'citizen';
 
     function initApp(){
-      // default center (Nairobi) — adjust as needed
-      const center = { lat: -1.28333, lng: 36.81667 };
-      map = new google.maps.Map(document.getElementById('map'), { center, zoom: 13 });
+      // default center Nairobi
+      map = L.map('map').setView([-1.28333, 36.81667], 13);
+
+      // OpenStreetMap tiles
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
 
       // role buttons
-      document.getElementById('role-citizen').onclick = ()=>{ role='citizen'; renderInfo(); };
-      document.getElementById('role-collector').onclick = ()=>{ role='collector'; renderInfo(); };
+      document.getElementById('role-citizen').onclick = ()=> setRole('citizen');
+      document.getElementById('role-collector').onclick = ()=> setRole('collector');
+      setRole('citizen');
 
-      // Listen to bins in Firebase
-      db.ref('bins').on('value', snapshot => {
-        const bins = snapshot.val() || {};
+      // listen to Firebase bins
+      db.ref('bins').on('value', snap => {
+        const bins = snap.val() || {};
         updateMarkers(bins);
         updateStats(bins);
-        renderInfo();
       });
     }
 
-    function updateMarkers(bins){
-      // remove markers for deleted bins
-      for(const id in markers){
-        if(!bins[id]){ markers[id].setMap(null); delete markers[id]; }
-      }
+    function setRole(newRole){
+      role = newRole;
+      document.getElementById('role-citizen').classList.toggle('active', role==='citizen');
+      document.getElementById('role-collector').classList.toggle('active', role==='collector');
+      renderInfo();
+    }
 
+    function updateMarkers(bins){
+      // clear markers not in DB
+      for(const id in markers){
+        if(!bins[id]){ map.removeLayer(markers[id]); delete markers[id]; }
+      }
       for(const id in bins){
         const b = bins[id];
         if(markers[id]){
-          markers[id].setPosition({lat: b.lat, lng: b.lng});
+          markers[id].setLatLng([b.lat, b.lng]);
           markers[id].setIcon(iconForStatus(b.status));
         } else {
-          const m = new google.maps.Marker({
-            position: {lat: b.lat, lng: b.lng},
-            map,
-            title: `Bin ${id}`,
-            icon: iconForStatus(b.status)
-          });
-          m.addListener('click', ()=> onMarkerClick(id, b));
+          const m = L.marker([b.lat, b.lng], { icon: iconForStatus(b.status) })
+            .addTo(map)
+            .on('click', ()=> onMarkerClick(id, b));
           markers[id] = m;
         }
       }
     }
 
     function iconForStatus(status){
-      const color = status === 'full' ? '#d9534f' : status === 'half' ? '#f0ad4e' : '#5cb85c';
-      const svg = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'><circle cx='12' cy='12' r='10' fill='${color}' /></svg>`;
-      return svg;
+      const color = status==='full' ? 'red' : status==='half' ? 'orange' : 'green';
+      return L.divIcon({ className:'', html:`<div style="background:${color};width:20px;height:20px;border-radius:50%;"></div>` });
     }
 
     function onMarkerClick(id, bin){
       const actions = document.getElementById('actions');
       actions.innerHTML = `<h3>Bin ${id}</h3><p>Status: ${bin.status} (${bin.level}%)</p>`;
-      if(role === 'citizen'){
-        const btn = document.createElement('button');
-        btn.textContent = 'Report Full';
-        btn.onclick = ()=> reportFull(id);
+      if(role==='citizen'){
+        const btn=document.createElement('button');
+        btn.textContent='Report Full';
+        btn.onclick=()=> reportFull(id);
         actions.appendChild(btn);
       } else {
-        const btn = document.createElement('button');
-        btn.textContent = 'Mark Collected';
-        btn.onclick = ()=> markCollected(id);
+        const btn=document.createElement('button');
+        btn.textContent='Mark Collected';
+        btn.onclick=()=> markCollected(id);
         actions.appendChild(btn);
       }
     }
 
     function reportFull(id){
-      const updates = { level: 100, status: 'full', lastUpdated: Date.now() };
-      db.ref('bins/' + id).update(updates);
-      addAlert(`📩 Alert: Bin ${id} has been reported as FULL! Collector notified.`);
+      db.ref('bins/'+id).update({level:100,status:'full',lastUpdated:Date.now()});
+      addAlert(`📩 Alert: Bin ${id} reported as FULL! Collector notified.`);
     }
 
     function markCollected(id){
-      const updates = { level: 0, status: 'empty', lastUpdated: Date.now() };
-      db.ref('bins/' + id).update(updates);
+      db.ref('bins/'+id).update({level:0,status:'empty',lastUpdated:Date.now()});
       addAlert(`✅ Bin ${id} has been emptied and marked as collected.`);
     }
 
     function updateStats(bins){
-      const counts = { full:0, half:0, empty:0 };
-      for(const id in bins){ counts[bins[id].status] = (counts[bins[id].status]||0) + 1; }
+      const counts={full:0,half:0,empty:0};
+      for(const id in bins){ counts[bins[id].status]++; }
       document.getElementById('stats').innerHTML = `Full: ${counts.full} | Half: ${counts.half} | Empty: ${counts.empty}`;
     }
 
     function renderInfo(){
-      if(!document.getElementById('actions').innerHTML) {
-        document.getElementById('actions').innerHTML = '<p>Click a bin on the map to interact.</p>';
-      }
+      document.getElementById('actions').innerHTML = '<p>Click a bin on the map to interact.</p>';
     }
 
-    function addAlert(message){
-      const container = document.getElementById('alert-list');
-      const div = document.createElement('div');
-      div.className = 'alert';
-      div.textContent = message;
+    function addAlert(msg){
+      const container=document.getElementById('alert-list');
+      const div=document.createElement('div');
+      div.className='alert';
+      div.textContent=msg;
       container.prepend(div);
     }
 
-    window.initApp = initApp;
+    // start app
+    window.onload = initApp;
   </script>
 </body>
 </html>
