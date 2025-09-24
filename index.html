@@ -15,6 +15,8 @@
     #stats{ font-weight:600; margin-bottom:8px }
     #alerts{ margin-top:12px; padding:10px; border:1px solid #ccc; background:#f9f9f9 }
     .alert{ padding:6px 0; border-bottom:1px solid #eee }
+    form input{ display:block; margin:6px 0; padding:6px; width:95%; }
+    form button{ padding:6px 12px; margin-top:6px; background:#28a745; border:none; color:#fff; border-radius:6px; cursor:pointer; }
   </style>
 </head>
 <body>
@@ -71,9 +73,9 @@
       const sampleBins = {
         "bin1": { lat: -1.28333, lng: 36.81667, level: 0, status: "empty", lastUpdated: Date.now(), reportedBy:null },
         "bin2": { lat: -1.2921, lng: 36.8219, level: 40, status: "half", lastUpdated: Date.now(), reportedBy:null },
-        "bin3": { lat: -1.3000, lng: 36.8200, level: 100, status: "full", lastUpdated: Date.now(), reportedBy:"citizenUser1" },
+        "bin3": { lat: -1.3000, lng: 36.8200, level: 100, status: "full", lastUpdated: Date.now(), reportedBy:null },
         "bin4": { lat: -1.2765, lng: 36.8172, level: 60, status: "half", lastUpdated: Date.now(), reportedBy:null },
-        "bin5": { lat: -1.2890, lng: 36.8300, level: 100, status: "full", lastUpdated: Date.now(), reportedBy:"citizenUser2" }
+        "bin5": { lat: -1.2890, lng: 36.8300, level: 100, status: "full", lastUpdated: Date.now(), reportedBy:null }
       };
       db.ref("bins").set(sampleBins);
     }
@@ -139,10 +141,21 @@
       const actions = document.getElementById('actions');
       actions.innerHTML = `<h3>Bin ${id}</h3><p>Status: ${bin.status} (${bin.level}%)</p>`;
       if(role==='citizen'){
-        const btn=document.createElement('button');
-        btn.textContent='Report Full';
-        btn.onclick=()=> reportFull(id);
-        actions.appendChild(btn);
+        const form = document.createElement('form');
+        form.innerHTML = `
+          <label>Your Name:</label>
+          <input type="text" id="citizenName" required>
+          <label>Your Email:</label>
+          <input type="email" id="citizenEmail" required>
+          <button type="submit">Report Full</button>
+        `;
+        form.onsubmit = (e)=>{
+          e.preventDefault();
+          const name = document.getElementById('citizenName').value;
+          const email = document.getElementById('citizenEmail').value;
+          reportFull(id, name, email);
+        };
+        actions.appendChild(form);
       } else {
         const btn=document.createElement('button');
         btn.textContent='Mark Collected (Reset)';
@@ -151,24 +164,29 @@
       }
     }
 
-    function reportFull(id){
+    function reportFull(id, name, email){
       db.ref('bins/'+id).update({
         level:100,
         status:'full',
         lastUpdated:Date.now(),
-        reportedBy:"citizenUser1"   // placeholder citizen
+        reportedBy: { name, email }
       });
-      addAlert(`📩 Alert: Bin ${id} reported as FULL! Collector notified.`);
+      addAlert(`📩 Alert: Bin ${id} reported as FULL by ${name} (${email}). Collector notified.`);
     }
 
     function resetBin(id, bin){
+      let reporter = bin.reportedBy;
       db.ref('bins/'+id).update({
         level:0,
         status:'empty',
         lastUpdated:Date.now(),
         reportedBy:null
       });
-      addAlert(`✅ Bin ${id} has been emptied. Citizen who reported has been notified.`);
+      if(reporter){
+        addAlert(`✅ Bin ${id} has been emptied. Citizen (${reporter.name}, ${reporter.email}) has been notified.`);
+      } else {
+        addAlert(`✅ Bin ${id} has been emptied.`);
+      }
     }
 
     function updateStats(bins){
