@@ -3,42 +3,143 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Smart Waste Management — Demo</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <title>Campus Lost & Found — Demo</title>
+  <link rel="stylesheet" href="https://unpkg.com/normalize.css/normalize.css" />
   <style>
-    body{ font-family: system-ui, sans-serif; margin:0; padding:0; }
-    header{ display:flex; justify-content:space-between; align-items:center; padding:10px 16px; background:#222; color:#fff }
-    #role-switch button{ margin-left:8px; padding:6px 10px; border:none; border-radius:6px; background:#555; color:#fff; cursor:pointer; }
-    #role-switch button.active{ background:#28a745; }
-    #map{ height:60vh; }
-    #info{ padding:12px }
-    #stats{ font-weight:600; margin-bottom:8px }
-    #alerts{ margin-top:12px; padding:10px; border:1px solid #ccc; background:#f9f9f9 }
-    .alert{ padding:6px 0; border-bottom:1px solid #eee }
-    form input{ display:block; margin:6px 0; padding:6px; width:95%; }
-    form button{ padding:6px 12px; margin-top:6px; background:#28a745; border:none; color:#fff; border-radius:6px; cursor:pointer; }
+    :root{
+      --accent:#2b8aef;
+      --card:#fff;
+      --muted:#666;
+      --bg:#f4f6fb;
+    }
+    body{ font-family: Inter, system-ui, -apple-system, Arial; background:var(--bg); margin:0; padding:18px; color:#111;}
+    header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;}
+    h1{ margin:0; font-size:20px;}
+    .container{ max-width:980px; margin:0 auto; }
+    .topbar{ display:flex; gap:12px; align-items:center; }
+    .btn{ background:var(--accent); color:#fff; padding:8px 12px; border-radius:8px; border:none; cursor:pointer; }
+    .btn.secondary{ background:#444; }
+    .layout{ display:grid; grid-template-columns: 1fr 360px; gap:16px; }
+    .card{ background:var(--card); padding:12px; border-radius:10px; box-shadow: 0 6px 18px rgba(20,20,40,0.06); }
+    form label{ display:block; font-weight:600; margin-top:8px; font-size:13px; }
+    form input[type="text"], form input[type="email"], form input[type="date"], form textarea, form select {
+      width:100%; padding:8px; border-radius:6px; border:1px solid #ddd; margin-top:6px; box-sizing:border-box;
+    }
+    form textarea{ min-height:80px; resize:vertical; }
+    .cols{ display:flex; gap:8px; }
+    .small{ flex:1; }
+    .lists{ display:flex; flex-direction:column; gap:12px; }
+    .list-controls{ display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+    .search{ flex:1; padding:8px; border-radius:8px; border:1px solid #ddd; }
+    .item-grid{ display:grid; grid-template-columns: repeat(auto-fill,minmax(240px,1fr)); gap:12px; }
+    .item-card{ background:#fff; padding:10px; border-radius:10px; box-shadow:0 6px 14px rgba(10,10,30,0.05); display:flex; gap:10px; align-items:flex-start; }
+    .thumb{ width:72px; height:72px; background:#eee; border-radius:8px; object-fit:cover; }
+    .meta{ flex:1; }
+    .meta h4{ margin:0 0 6px 0; font-size:15px; }
+    .muted{ color:var(--muted); font-size:13px; }
+    .badge{ display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; color:#fff; }
+    .badge.lost{ background:#d9534f; }
+    .badge.found{ background:#5cb85c; }
+    .match{ display:block; margin-top:6px; background:#fff3cd; color:#6a5200; padding:6px; border-radius:6px; font-size:13px; }
+    .small-muted{ font-size:12px; color:#666; margin-top:6px; }
+    .empty{ color:#888; padding:18px; text-align:center; }
+    footer{ margin-top:18px; text-align:center; color:#666; font-size:13px; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Smart Waste Management — Demo</h1>
-    <div id="role-switch">
-      <button id="role-citizen">Citizen</button>
-      <button id="role-collector">Collector</button>
+  <div class="container">
+    <header>
+      <h1>Campus Lost & Found — Demo</h1>
+      <div class="topbar">
+        <button class="btn" id="show-report">Report Item</button>
+        <button class="btn secondary" id="show-lists">View Items</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <!-- LEFT: lists -->
+      <div>
+        <div class="card">
+          <div class="list-controls">
+            <input class="search" id="search" placeholder="Search items by name or description..." />
+            <select id="filterType" style="padding:8px;border-radius:8px;border:1px solid #ddd;">
+              <option value="all">All</option>
+              <option value="lost">Lost</option>
+              <option value="found">Found</option>
+            </select>
+            <button class="btn" id="refresh">Refresh</button>
+          </div>
+          <div style="margin-top:8px;" id="counts" class="small-muted">Loading items...</div>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <div class="lists">
+          <div class="card">
+            <h3 style="margin-top:0;">Items</h3>
+            <div id="itemsContainer" class="item-grid">
+              <!-- item cards injected here -->
+            </div>
+            <div id="itemsEmpty" class="empty" style="display:none;">No items found.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: report form -->
+      <div>
+        <div class="card" id="reportCard">
+          <h3 style="margin-top:0;">Report Lost or Found</h3>
+          <form id="reportForm">
+            <label>Type</label>
+            <select id="type" required>
+              <option value="lost">Lost</option>
+              <option value="found">Found</option>
+            </select>
+
+            <label>Item Name</label>
+            <input id="itemName" type="text" required placeholder="e.g., Black wallet" />
+
+            <label>Description</label>
+            <textarea id="description" placeholder="Any details: brand, marks, contents..."></textarea>
+
+            <label>Location (where lost/found)</label>
+            <input id="location" type="text" placeholder="e.g., Library, Block A" />
+
+            <div class="cols">
+              <div class="small">
+                <label>Date</label>
+                <input id="date" type="date" />
+              </div>
+              <div class="small">
+                <label>Contact (email or phone)</label>
+                <input id="contact" type="text" placeholder="john@example.com or +2547..." required />
+              </div>
+            </div>
+
+            <label>Photo (optional)</label>
+            <input id="photo" type="file" accept="image/*" />
+
+            <div style="margin-top:10px;">
+              <button class="btn" type="submit">Submit Report</button>
+              <button type="button" id="clearForm" class="btn secondary">Clear</button>
+            </div>
+            <div id="formMsg" class="small-muted" style="margin-top:8px;"></div>
+          </form>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <div class="card">
+          <h3 style="margin-top:0;">How it works</h3>
+          <p class="small-muted">Students report lost/found items. When you post a found item, the system will flag possible matches with lost items (simple name-match). Contact info is visible in the item card so people can reconnect.</p>
+        </div>
+      </div>
     </div>
-  </header>
 
-  <main>
-    <div id="map"></div>
+    <footer>Built with Firebase Realtime Database & Storage — Demo</footer>
+  </div>
 
-    <section id="info">
-      <div id="stats">Loading stats...</div>
-      <div id="actions"><p>Click a bin on the map to interact.</p></div>
-      <div id="alerts"><strong>Alerts:</strong><div id="alert-list"></div></div>
-    </section>
-  </main>
-
-  <!-- FIREBASE CONFIG -->
+  <!-- Firebase config (your project) -->
   <script>
     const FIREBASE_CONFIG = {
       apiKey: "AIzaSyA6nAAc3sx9mkOapNSff7k1EFGkfbLN_o4",
@@ -52,162 +153,204 @@
     };
   </script>
 
-  <!-- Firebase SDKs -->
+  <!-- Firebase compat SDKs -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
 
   <script>
-    // Initialize Firebase
+    // initialize
     firebase.initializeApp(FIREBASE_CONFIG);
     const db = firebase.database();
+    const storage = firebase.storage();
 
-    let map;
-    const markers = {};
-    let role = 'citizen';
+    // DOM refs
+    const reportForm = document.getElementById('reportForm');
+    const itemsContainer = document.getElementById('itemsContainer');
+    const itemsEmpty = document.getElementById('itemsEmpty');
+    const searchInput = document.getElementById('search');
+    const filterType = document.getElementById('filterType');
+    const countsEl = document.getElementById('counts');
+    const formMsg = document.getElementById('formMsg');
+    const refreshBtn = document.getElementById('refresh');
+    const showReport = document.getElementById('show-report');
+    const showLists = document.getElementById('show-lists');
 
-    // seed bins if database is empty
-    function seedBins() {
-      const sampleBins = {
-        "bin1": { lat: -1.28333, lng: 36.81667, level: 0, status: "empty", lastUpdated: Date.now(), reportedBy:null },
-        "bin2": { lat: -1.2921, lng: 36.8219, level: 40, status: "half", lastUpdated: Date.now(), reportedBy:null },
-        "bin3": { lat: -1.3000, lng: 36.8200, level: 100, status: "full", lastUpdated: Date.now(), reportedBy:null },
-        "bin4": { lat: -1.2765, lng: 36.8172, level: 60, status: "half", lastUpdated: Date.now(), reportedBy:null },
-        "bin5": { lat: -1.2890, lng: 36.8300, level: 100, status: "full", lastUpdated: Date.now(), reportedBy:null }
-      };
-      db.ref("bins").set(sampleBins);
-    }
+    let cachedItems = {}; // store items locally
 
-    function initApp(){
-      // default center Nairobi
-      map = L.map('map').setView([-1.28333, 36.81667], 13);
+    // toggle to focus form or lists
+    showReport.onclick = ()=> window.scrollTo({ top: document.body.scrollHeight, behavior:'smooth' });
+    showLists.onclick = ()=> window.scrollTo({ top: 0, behavior:'smooth' });
 
-      // OpenStreetMap tiles
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(map);
-
-      // role buttons
-      document.getElementById('role-citizen').onclick = ()=> setRole('citizen');
-      document.getElementById('role-collector').onclick = ()=> setRole('collector');
-      setRole('citizen');
-
-      // check if bins exist, otherwise seed
-      db.ref("bins").once("value").then(snap => {
-        if(!snap.exists()) seedBins();
-      });
-
-      // listen to bins
-      db.ref('bins').on('value', snap => {
-        const bins = snap.val() || {};
-        updateMarkers(bins);
-        updateStats(bins);
+    // listen to DB changes
+    function subscribeItems(){
+      db.ref('items').on('value', snap => {
+        cachedItems = snap.val() || {};
+        renderItems();
       });
     }
 
-    function setRole(newRole){
-      role = newRole;
-      document.getElementById('role-citizen').classList.toggle('active', role==='citizen');
-      document.getElementById('role-collector').classList.toggle('active', role==='collector');
-      renderInfo();
+    // helper: upload image (returns Promise of downloadURL or null)
+    function uploadImage(file){
+      if(!file) return Promise.resolve(null);
+      const path = 'images/' + Date.now() + '_' + file.name.replace(/\s+/g,'_');
+      const ref = storage.ref().child(path);
+      return ref.put(file).then(r => r.ref.getDownloadURL());
     }
 
-    function updateMarkers(bins){
-      for(const id in markers){
-        if(!bins[id]){ map.removeLayer(markers[id]); delete markers[id]; }
-      }
-      for(const id in bins){
-        const b = bins[id];
-        if(markers[id]){
-          markers[id].setLatLng([b.lat, b.lng]);
-          markers[id].setIcon(iconForStatus(b.status));
-        } else {
-          const m = L.marker([b.lat, b.lng], { icon: iconForStatus(b.status) })
-            .addTo(map)
-            .on('click', ()=> onMarkerClick(id, b));
-          markers[id] = m;
+    // create item id and push
+    function createItem(data){
+      const id = db.ref('items').push().key;
+      data.createdAt = Date.now();
+      return db.ref('items/' + id).set(data).then(()=> id);
+    }
+
+    // basic matching: check opposite-type items for name substring match
+    function findMatches(item){
+      const matches = [];
+      const targetName = (item.name || '').toLowerCase();
+      const oppositeType = item.type === 'lost' ? 'found' : 'lost';
+      for(const id in cachedItems){
+        const it = cachedItems[id];
+        if(it.type !== oppositeType) continue;
+        if(!it.name) continue;
+        const name = it.name.toLowerCase();
+        if(name.includes(targetName) || targetName.includes(name) || fuzzyMatch(name, targetName)){
+          matches.push({ id, ...it });
         }
       }
+      return matches;
     }
 
-    function iconForStatus(status){
-      const color = status==='full' ? 'red' : status==='half' ? 'orange' : 'green';
-      return L.divIcon({ className:'', html:`<div style="background:${color};width:20px;height:20px;border-radius:50%;"></div>` });
+    // simple fuzzy: share token
+    function fuzzyMatch(a,b){
+      const ta = a.split(/\s+/);
+      const tb = b.split(/\s+/);
+      for(const x of ta) for(const y of tb) if(x && y && x===y) return true;
+      return false;
     }
 
-    function onMarkerClick(id, bin){
-      const actions = document.getElementById('actions');
-      actions.innerHTML = `<h3>Bin ${id}</h3><p>Status: ${bin.status} (${bin.level}%)</p>`;
-      if(role==='citizen'){
-        const form = document.createElement('form');
-        form.innerHTML = `
-          <label>Your Name:</label>
-          <input type="text" id="citizenName" required>
-          <label>Your Email:</label>
-          <input type="email" id="citizenEmail" required>
-          <button type="submit">Report Full</button>
-        `;
-        form.onsubmit = (e)=>{
-          e.preventDefault();
-          const name = document.getElementById('citizenName').value;
-          const email = document.getElementById('citizenEmail').value;
-          reportFull(id, name, email);
+    // render items
+    function renderItems(){
+      const q = (searchInput.value || '').trim().toLowerCase();
+      const typeFilter = filterType.value;
+      itemsContainer.innerHTML = '';
+      let count=0, lost=0, found=0;
+      for(const id in cachedItems){
+        const it = cachedItems[id];
+        if(it.type==='lost') lost++; else if(it.type==='found') found++;
+        // filter
+        if(typeFilter !== 'all' && it.type !== typeFilter) continue;
+        const text = (it.name + ' ' + (it.description||'') + ' ' + (it.location||'')).toLowerCase();
+        if(q && !text.includes(q)) continue;
+        // create card
+        const card = document.createElement('div');
+        card.className = 'item-card';
+        const img = document.createElement('img');
+        img.className = 'thumb';
+        img.alt = it.name || '';
+        img.src = it.imageUrl || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72"><rect width="100%" height="100%" fill="%23eee"/></svg>';
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.innerHTML = `<h4>${escapeHtml(it.name || 'Unnamed')}</h4>
+                          <div class="muted">${escapeHtml(it.description || '')}</div>
+                          <div class="small-muted">Location: ${escapeHtml(it.location || 'Unknown')} • Date: ${it.date || '—'}</div>
+                          <div style="margin-top:8px"><span class="badge ${it.type==='lost' ? 'lost' : 'found'}">${it.type.toUpperCase()}</span></div>
+                          <div class="small-muted">Contact: ${escapeHtml(it.contact || '—')}</div>`;
+        // match suggestions
+        const matches = findMatches(it);
+        if(matches.length){
+          const matchDiv = document.createElement('div');
+          matchDiv.className = 'match';
+          matchDiv.textContent = `Possible matches (${matches.length}): ` + matches.map(m => `${m.name} (${m.location||'?'})`).join(' • ');
+          meta.appendChild(matchDiv);
+        }
+        // action: mark resolved (admin) or contact copy
+        const actionWrap = document.createElement('div');
+        actionWrap.style.marginTop = '8px';
+        const resolveBtn = document.createElement('button');
+        resolveBtn.className = 'btn secondary';
+        resolveBtn.textContent = 'Mark Resolved';
+        resolveBtn.onclick = ()=> {
+          const ok = confirm('Mark this item as resolved/removed?');
+          if(!ok) return;
+          db.ref('items/'+id).remove();
         };
-        actions.appendChild(form);
-      } else {
-        const btn=document.createElement('button');
-        btn.textContent='Mark Collected (Reset)';
-        btn.onclick=()=> resetBin(id, bin);
-        actions.appendChild(btn);
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'btn';
+        copyBtn.style.marginLeft='8px';
+        copyBtn.textContent = 'Copy Contact';
+        copyBtn.onclick = ()=> {
+          navigator.clipboard?.writeText(it.contact || '').then(()=> alert('Contact copied to clipboard'));
+        };
+        actionWrap.appendChild(copyBtn);
+        actionWrap.appendChild(resolveBtn);
+        meta.appendChild(actionWrap);
+
+        card.appendChild(img);
+        card.appendChild(meta);
+        itemsContainer.appendChild(card);
+        count++;
       }
+
+      countsEl.textContent = `Showing ${count} items — Total Lost: ${lost}, Found: ${found}`;
+      itemsEmpty.style.display = (count===0) ? 'block' : 'none';
     }
 
-    function reportFull(id, name, email){
-      db.ref('bins/'+id).update({
-        level:100,
-        status:'full',
-        lastUpdated:Date.now(),
-        reportedBy: { name, email }
-      });
-      addAlert(`📩 Alert: Bin ${id} reported as FULL by ${name} (${email}). Collector notified.`);
-    }
+    // simple HTML escape
+    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, (m)=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
-    function resetBin(id, bin){
-      let reporter = bin.reportedBy;
-      db.ref('bins/'+id).update({
-        level:0,
-        status:'empty',
-        lastUpdated:Date.now(),
-        reportedBy:null
-      });
-      if(reporter){
-        addAlert(`✅ Bin ${id} has been emptied. Citizen (${reporter.name}, ${reporter.email}) has been notified.`);
-      } else {
-        addAlert(`✅ Bin ${id} has been emptied.`);
+    // submission flow
+    reportForm.onsubmit = async (e)=>{
+      e.preventDefault();
+      formMsg.textContent = '';
+      const type = document.getElementById('type').value;
+      const name = document.getElementById('itemName').value.trim();
+      const description = document.getElementById('description').value.trim();
+      const location = document.getElementById('location').value.trim();
+      const date = document.getElementById('date').value;
+      const contact = document.getElementById('contact').value.trim();
+      const photoInput = document.getElementById('photo');
+      if(!name || !contact){ formMsg.textContent = 'Please enter item name and contact.'; return; }
+
+      formMsg.textContent = 'Uploading...';
+      const file = photoInput.files[0];
+      try {
+        const imageUrl = await uploadImage(file);
+        const data = {
+          type, name, description, location, date, contact, imageUrl: imageUrl || null
+        };
+        await createItem(data);
+        formMsg.textContent = 'Report submitted ✅';
+        reportForm.reset();
+        // quick re-render will happen via DB listener
+      } catch(err){
+        console.error(err);
+        formMsg.textContent = 'Error submitting report. Check console.';
       }
-    }
+      setTimeout(()=> formMsg.textContent = '', 3000);
+    };
 
-    function updateStats(bins){
-      const counts={full:0,half:0,empty:0};
-      for(const id in bins){ counts[bins[id].status]++; }
-      document.getElementById('stats').innerHTML = `Full: ${counts.full} | Half: ${counts.half} | Empty: ${counts.empty}`;
-    }
+    // helpers: UI interactions
+    searchInput.oninput = renderItems;
+    filterType.onchange = renderItems;
+    refreshBtn.onclick = ()=> { renderItems(); };
 
-    function renderInfo(){
-      document.getElementById('actions').innerHTML = '<p>Click a bin on the map to interact.</p>';
-    }
+    // initialize and subscribe
+    subscribeItems();
 
-    function addAlert(msg){
-      const container=document.getElementById('alert-list');
-      const div=document.createElement('div');
-      div.className='alert';
-      div.textContent=msg;
-      container.prepend(div);
-    }
+    // seed example items if none exist (helpful for demo)
+    db.ref('items').once('value').then(snap=>{
+      if(!snap.exists()){
+        const example = {
+          a1:{ type:'lost', name:'Black Wallet', description:'Leather, with student card', location:'Library', date:'2025-06-01', contact:'alice@example.com', imageUrl:null, createdAt:Date.now() },
+          a2:{ type:'found', name:'Wallet - black leather', description:'Found near library steps', location:'Library Steps', date:'2025-06-02', contact:'bob@example.com', imageUrl:null, createdAt:Date.now() },
+          a3:{ type:'lost', name:'Blue Umbrella', description:'Plastic handle', location:'Cafeteria', date:'2025-06-03', contact:'charles@example.com', imageUrl:null, createdAt:Date.now() }
+        };
+        db.ref('items').set(example);
+      }
+    });
 
-    window.onload = initApp;
   </script>
 </body>
 </html>
