@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Smart Waste Management — Demo (Free)</title>
+  <title>Smart Waste Management — Demo</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
   <style>
     body{ font-family: system-ui, sans-serif; margin:0; padding:0; }
@@ -69,11 +69,11 @@
     // seed bins if database is empty
     function seedBins() {
       const sampleBins = {
-        "bin1": { lat: -1.28333, lng: 36.81667, level: 0, status: "empty", lastUpdated: Date.now() },
-        "bin2": { lat: -1.2921, lng: 36.8219, level: 40, status: "half", lastUpdated: Date.now() },
-        "bin3": { lat: -1.3000, lng: 36.8200, level: 100, status: "full", lastUpdated: Date.now() },
-        "bin4": { lat: -1.2765, lng: 36.8172, level: 60, status: "half", lastUpdated: Date.now() },
-        "bin5": { lat: -1.2890, lng: 36.8300, level: 100, status: "full", lastUpdated: Date.now() }
+        "bin1": { lat: -1.28333, lng: 36.81667, level: 0, status: "empty", lastUpdated: Date.now(), reportedBy:null },
+        "bin2": { lat: -1.2921, lng: 36.8219, level: 40, status: "half", lastUpdated: Date.now(), reportedBy:null },
+        "bin3": { lat: -1.3000, lng: 36.8200, level: 100, status: "full", lastUpdated: Date.now(), reportedBy:"citizenUser1" },
+        "bin4": { lat: -1.2765, lng: 36.8172, level: 60, status: "half", lastUpdated: Date.now(), reportedBy:null },
+        "bin5": { lat: -1.2890, lng: 36.8300, level: 100, status: "full", lastUpdated: Date.now(), reportedBy:"citizenUser2" }
       };
       db.ref("bins").set(sampleBins);
     }
@@ -145,20 +145,30 @@
         actions.appendChild(btn);
       } else {
         const btn=document.createElement('button');
-        btn.textContent='Mark Collected';
-        btn.onclick=()=> markCollected(id);
+        btn.textContent='Mark Collected (Reset)';
+        btn.onclick=()=> resetBin(id, bin);
         actions.appendChild(btn);
       }
     }
 
     function reportFull(id){
-      db.ref('bins/'+id).update({level:100,status:'full',lastUpdated:Date.now()});
+      db.ref('bins/'+id).update({
+        level:100,
+        status:'full',
+        lastUpdated:Date.now(),
+        reportedBy:"citizenUser1"   // placeholder citizen
+      });
       addAlert(`📩 Alert: Bin ${id} reported as FULL! Collector notified.`);
     }
 
-    function markCollected(id){
-      db.ref('bins/'+id).update({level:0,status:'empty',lastUpdated:Date.now()});
-      addAlert(`✅ Bin ${id} has been emptied and marked as collected.`);
+    function resetBin(id, bin){
+      db.ref('bins/'+id).update({
+        level:0,
+        status:'empty',
+        lastUpdated:Date.now(),
+        reportedBy:null
+      });
+      addAlert(`✅ Bin ${id} has been emptied. Citizen who reported has been notified.`);
     }
 
     function updateStats(bins){
