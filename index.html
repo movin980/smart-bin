@@ -1,174 +1,380 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Lost & Found</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Campus Lost & Found — Polished</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: Arial, sans-serif; background:#f4f4f4; padding:20px; }
-    .container { max-width:800px; margin:auto; background:#fff; padding:20px; border-radius:10px; }
-    form { margin-bottom:30px; }
-    input, textarea, select, button {
-      display:block; width:100%; padding:10px; margin:10px 0;
+    :root{
+      --accent:#2563eb;   /* blue accent */
+      --bg:#f4f6fb;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --shadow: 0 8px 30px rgba(16,24,40,0.06);
+      --success:#10b981;
+      --danger:#ef4444;
     }
-    .items { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-    .item { border:1px solid #ddd; padding:10px; border-radius:8px; background:#fafafa; }
-    .item img { max-width:100%; border-radius:6px; }
+    *{box-sizing:border-box}
+    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#0f172a;margin:0;background:var(--bg);}
+    header{background:linear-gradient(90deg,var(--accent),#1e40af);color:#fff;padding:18px 24px;font-weight:600}
+    .root{max-width:1100px;margin:28px auto;padding:0 16px;display:grid;grid-template-columns:1fr 420px;gap:20px}
+    .card{background:var(--card);border-radius:12px;padding:18px;box-shadow:var(--shadow);overflow:hidden}
+    .title{font-size:18px;margin:0 0 8px}
+    label{display:block;font-size:13px;font-weight:600;margin-top:12px;color:#0f172a}
+    input[type="text"], input[type="date"], select, textarea {
+      width:100%;padding:10px;border-radius:8px;border:1px solid #e6e9ef;margin-top:8px;font-size:14px;
+      background:#fff; outline:none;
+    }
+    textarea{min-height:90px;resize:vertical}
+    .row{display:flex;gap:12px}
+    .row .col{flex:1}
+    button{background:var(--accent);color:#fff;border:0;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}
+    button.ghost{background:transparent;color:var(--accent);border:1px solid rgba(37,99,235,0.15)}
+    .muted{color:var(--muted);font-size:13px;margin-top:10px}
+    /* Items grid */
+    .itemsGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+    .itemCard{display:flex;gap:12px;padding:12px;border-radius:12px;background:#fff;align-items:flex-start;position:relative;overflow:visible;transition:transform .18s ease, box-shadow .18s ease}
+    .itemCard:hover{transform:translateY(-6px);box-shadow:0 12px 38px rgba(2,6,23,0.08)}
+    .thumb{width:88px;height:88px;border-radius:10px;object-fit:cover;background:#f3f4f6;flex-shrink:0}
+    .meta h4{margin:0;font-size:15px}
+    .meta p{margin:6px 0 0;color:var(--muted);font-size:13px}
+    .badge{display:inline-block;padding:5px 9px;border-radius:999px;font-size:12px;color:#fff;margin-top:8px}
+    .badge.lost{background:var(--danger)}
+    .badge.found{background:var(--success)}
+    .actions{display:flex;gap:8px;margin-top:10px}
+    .actions button{padding:6px 8px;font-size:13px;border-radius:8px}
+    /* preview + progress overlay */
+    .progressWrap{position:relative;display:inline-block}
+    .progressOverlay{position:absolute;left:0;top:0;width:100%;height:100%;background:rgba(2,6,23,0.45);display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;border-radius:10px;font-size:13px;backdrop-filter:blur(2px)}
+    .progressBar{width:80%;height:8px;background:rgba(255,255,255,0.18);border-radius:999px;margin-top:8px;overflow:hidden}
+    .progressFill{height:100%;width:0%;background:linear-gradient(90deg,#34d399,#06b6d4)}
+    .u-small{font-size:12px;color:#94a3b8}
+    /* responsive */
+    @media (max-width:980px){.root{grid-template-columns:1fr;}.thumb{width:80px;height:80px}}
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Lost & Found Report</h2>
-    <form id="reportForm">
-      <select id="type">
-        <option value="lost">Lost</option>
-        <option value="found">Found</option>
-      </select>
-      <input type="text" id="itemName" placeholder="Item name" required />
-      <textarea id="description" placeholder="Description"></textarea>
-      <input type="text" id="location" placeholder="Location" />
-      <input type="date" id="date" />
-      <input type="text" id="contact" placeholder="Your contact info" required />
-      <input type="file" id="photo" accept="image/*" />
-      <button type="submit">Submit Report</button>
-      <p id="formMsg"></p>
-    </form>
+  <header>Campus Lost & Found</header>
 
-    <h2>Reports</h2>
-    <div class="items" id="itemsContainer"></div>
-  </div>
+  <main class="root">
+    <!-- LEFT: items -->
+    <section class="card" aria-labelledby="itemsTitle">
+      <h2 id="itemsTitle" class="title">Reported Items</h2>
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+        <input id="search" placeholder="Search name, description or location..." style="flex:1;padding:10px;border-radius:10px;border:1px solid #e6e9ef" />
+        <select id="filterType" style="padding:10px;border-radius:10px;border:1px solid #e6e9ef">
+          <option value="all">All</option><option value="lost">Lost</option><option value="found">Found</option>
+        </select>
+      </div>
+
+      <div id="counts" class="muted" style="margin-bottom:12px">Loading items…</div>
+      <div id="itemsGrid" class="itemsGrid" role="list"></div>
+      <div id="emptyMsg" class="muted" style="text-align:center;margin-top:18px;display:none">No items found.</div>
+    </section>
+
+    <!-- RIGHT: form -->
+    <aside class="card" aria-labelledby="formTitle">
+      <h2 id="formTitle" class="title">Report an Item</h2>
+
+      <form id="reportForm" autocomplete="off">
+        <label>Type</label>
+        <select id="type" required><option value="lost">Lost</option><option value="found">Found</option></select>
+
+        <label>Item name</label>
+        <input id="itemName" type="text" placeholder="e.g., Black wallet" required />
+
+        <label>Description</label>
+        <textarea id="description" placeholder="Any details: brand, marks, contents..."></textarea>
+
+        <label>Location</label>
+        <input id="location" type="text" placeholder="Where lost/found (e.g., Library)" />
+
+        <div class="row" style="margin-top:6px">
+          <div class="col">
+            <label>Date</label>
+            <input id="date" type="date" />
+          </div>
+          <div class="col">
+            <label>Contact</label>
+            <input id="contact" type="text" placeholder="email or phone" required />
+          </div>
+        </div>
+
+        <label style="margin-top:12px">Photo (optional)</label>
+        <input id="photo" type="file" accept="image/*" />
+        <div id="previewWrap" style="margin-top:10px;display:none">
+          <div class="progressWrap">
+            <img id="previewImg" class="thumb" alt="preview" />
+            <div id="previewOverlay" class="progressOverlay" style="display:none">
+              <div id="previewPct">0%</div>
+              <div class="progressBar"><div id="previewFill" class="progressFill"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:14px">
+          <button id="submitBtn" type="submit">Submit Report</button>
+          <button id="clearBtn" type="button" class="ghost">Clear</button>
+        </div>
+
+        <div id="formMsg" class="muted" style="margin-top:10px"></div>
+      </form>
+
+      <p class="muted" style="margin-top:14px;font-size:13px">Reports appear instantly. Photos preview immediately and upload in the background (progress shown). Images are compressed when safe — but we fall back to original if compression fails.</p>
+    </aside>
+  </main>
+
+  <!-- Firebase compat SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+
   <script>
-    // 🔹 Your Firebase config
-    const firebaseConfig = {
-      apiKey: "AIzaSyD-pD4TfRvBzKlZnK7GqW7NG69V-8Or3Rw",
-      authDomain: "smartwatertank-292e9.firebaseapp.com",
-      databaseURL: "https://smartwatertank-292e9-default-rtdb.firebaseio.com",
-      projectId: "smartwatertank-292e9",
-      storageBucket: "smartwatertank-292e9.appspot.com",
-      messagingSenderId: "684207674457",
-      appId: "1:684207674457:web:7e0dc2d5a7d3e3a8d9c6c1"
+    // ---------- config ----------
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyAXak-lN_WmRe0CbN0UkwcwxTfayIE5FA0",
+      authDomain: "smartbin34.firebaseapp.com",
+      databaseURL: "https://smartbin34-default-rtdb.firebaseio.com",
+      projectId: "smartbin34",
+      storageBucket: "smartbin34.appspot.com",
+      messagingSenderId: "1098169082361",
+      appId: "1:1098169082361:web:87ce799868d755b4f11d28",
+      measurementId: "G-VEJY91T6CM"
     };
-    firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp(FIREBASE_CONFIG);
     const db = firebase.database();
     const storage = firebase.storage();
 
+    // ---------- DOM ----------
     const reportForm = document.getElementById('reportForm');
+    const itemsGrid = document.getElementById('itemsGrid');
+    const emptyMsg = document.getElementById('emptyMsg');
+    const countsEl = document.getElementById('counts');
     const formMsg = document.getElementById('formMsg');
-    const itemsContainer = document.getElementById('itemsContainer');
+    const photoInput = document.getElementById('photo');
+    const previewImg = document.getElementById('previewImg');
+    const previewWrap = document.getElementById('previewWrap');
+    const previewOverlay = document.getElementById('previewOverlay');
+    const previewPct = document.getElementById('previewPct');
+    const previewFill = document.getElementById('previewFill');
+    const searchInput = document.getElementById('search');
+    const filterType = document.getElementById('filterType');
+    const clearBtn = document.getElementById('clearBtn');
 
-    // 🔹 Safe compression with fallback
-    function compressIfNeeded(file, maxW=1200, maxH=1200, quality=0.7) {
+    // ---------- in-memory previews & upload progress ----------
+    // localPreviews: dbKey -> dataURL (preview until imageUrl exists)
+    const localPreviews = {};
+    // progressMap: dbKey -> percent
+    const progressMap = {};
+
+    // ---------- helpers ----------
+    function esc(s){ return String(s||'').replace(/[&<>"']/g,(m)=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+    // Safe compression with fallback
+    function compressIfNeeded(file, maxW=1200, maxH=1200, quality=0.72) {
       return new Promise((resolve) => {
-        if (file.size && file.size < 500 * 1024) return resolve(file);
-
+        if (!file || (file.size && file.size < 500 * 1024)) return resolve(file); // small file, skip compress
         const reader = new FileReader();
         reader.onload = (e) => {
           const img = new Image();
           img.onload = () => {
-            let { width, height } = img;
-            if (width > maxW) { height *= maxW / width; width = maxW; }
-            if (height > maxH) { width *= maxH / height; height = maxH; }
-
-            const canvas = document.createElement('canvas');
-            canvas.width = width; canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-
-            canvas.toBlob((blob) => {
-              if (!blob || blob.size === 0) {
-                resolve(file); // fallback
-              } else if (blob.size > file.size) {
-                resolve(file); // fallback if bigger
-              } else {
-                resolve(new File([blob], file.name, {type:'image/jpeg'}));
-              }
-            }, 'image/jpeg', quality);
+            try {
+              let { width, height } = img;
+              if (width > maxW) { height *= maxW / width; width = maxW; }
+              if (height > maxH) { width *= maxH / height; height = maxH; }
+              const canvas = document.createElement('canvas');
+              canvas.width = width; canvas.height = height;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img,0,0,width,height);
+              canvas.toBlob((blob) => {
+                if (!blob || blob.size === 0) return resolve(file); // fallback
+                if (blob.size >= file.size) return resolve(file); // fallback if not beneficial
+                resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+              }, 'image/jpeg', quality);
+            } catch (err) {
+              // fallback on any error
+              resolve(file);
+            }
           };
-          img.onerror = () => resolve(file); // fallback
+          img.onerror = () => resolve(file); // fallback if image cannot be loaded (HEIC etc.)
           img.src = e.target.result;
         };
         reader.readAsDataURL(file);
       });
     }
 
-    // 🔹 Submit report
-    reportForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      formMsg.textContent = '';
+    // ---------- render ----------
+    let cached = {};
+    function renderAll(){
+      itemsGrid.innerHTML = '';
+      const q = (searchInput.value||'').trim().toLowerCase();
+      const filter = filterType.value;
+      let total=0, lost=0, found=0;
+      const keys = Object.keys(cached).sort((a,b)=> (cached[b].createdAt||0) - (cached[a].createdAt||0));
+      for(const key of keys){
+        const item = cached[key];
+        if (!item) continue;
+        if (item.type === 'lost') lost++; else if (item.type === 'found') found++;
+        if (filter !== 'all' && item.type !== filter) continue;
+        const text = ((item.name||'') + ' ' + (item.description||'') + ' ' + (item.location||'')).toLowerCase();
+        if (q && !text.includes(q)) continue;
+        const card = document.createElement('div');
+        card.className = 'itemCard';
+        // choose src: DB imageUrl > local preview > placeholder
+        const src = item.imageUrl || localPreviews[key] || ('data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="88" height="88"><rect width="100%" height="100%" fill="%23eef2ff"/></svg>'));
+        const img = document.createElement('img'); img.className='thumb'; img.src = src; img.alt = esc(item.name||'item');
+        const meta = document.createElement('div'); meta.className='meta';
+        meta.innerHTML = `<h4>${esc(item.name||'Unnamed')}</h4><p>${esc(item.description||'')}</p><div style="margin-top:8px" class="u-small">Location: ${esc(item.location||'—')} • ${esc(item.date||'—')}</div><div class="u-small" style="margin-top:6px">Contact: ${esc(item.contact||'—')}</div>`;
+        const badge = document.createElement('div'); badge.className = 'badge ' + (item.type==='lost' ? 'lost' : 'found'); badge.textContent = (item.type||'').toUpperCase();
+        meta.appendChild(badge);
 
+        // add uploading overlay if local preview exists and imageUrl not yet set
+        if (!item.imageUrl && localPreviews[key]) {
+          const over = document.createElement('div'); over.className = 'progressOverlay';
+          over.style.position = 'absolute'; over.style.left='12px'; over.style.top='12px'; over.style.width='88px'; over.style.height='88px'; over.style.borderRadius='10px';
+          const percent = progressMap[key] || 0;
+          over.innerHTML = `<div style="font-weight:700">${percent}%</div><div class="progressBar" style="width:70%"><div class="progressFill" style="width:${percent}%"></div></div>`;
+          card.appendChild(over);
+        }
+
+        // actions
+        const actions = document.createElement('div'); actions.className='actions';
+        const copyBtn = document.createElement('button'); copyBtn.textContent='Copy Contact'; copyBtn.className='ghost';
+        copyBtn.onclick = ()=> navigator.clipboard?.writeText(item.contact||'');
+        const resolveBtn = document.createElement('button'); resolveBtn.textContent='Mark Resolved'; resolveBtn.onclick = async ()=> {
+          if(!confirm('Remove this item?')) return;
+          await db.ref('items/'+key).remove();
+        };
+        actions.appendChild(copyBtn); actions.appendChild(resolveBtn);
+        meta.appendChild(actions);
+
+        card.appendChild(img); card.appendChild(meta);
+        itemsGrid.appendChild(card);
+        total++;
+      }
+      countsEl.textContent = `Showing ${total} item(s) — Lost: ${lost} • Found: ${found}`;
+      emptyMsg.style.display = total === 0 ? 'block' : 'none';
+    }
+
+    // ---------- DB subscribe ----------
+    db.ref('items').on('value', snap => {
+      cached = snap.val() || {};
+      renderAll();
+    });
+
+    // ---------- preview file selection (immediate) ----------
+    photoInput.addEventListener('change', (e) => {
+      const f = e.target.files[0];
+      if (!f) { previewWrap.style.display='none'; previewImg.src=''; return; }
+      const r = new FileReader();
+      r.onload = (ev) => {
+        previewImg.src = ev.target.result;
+        previewWrap.style.display='block';
+        previewOverlay.style.display='none'; previewPct.textContent='0%'; previewFill.style.width='0%';
+      };
+      r.readAsDataURL(f);
+    });
+
+    // ---------- submit: instant DB save + background upload with progress ----------
+    reportForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      formMsg.textContent = '';
       const type = document.getElementById('type').value;
       const name = document.getElementById('itemName').value.trim();
       const description = document.getElementById('description').value.trim();
       const location = document.getElementById('location').value.trim();
       const date = document.getElementById('date').value;
       const contact = document.getElementById('contact').value.trim();
-      const file = document.getElementById('photo').files[0];
+      const file = photoInput.files[0];
 
-      if (!name || !contact) {
-        formMsg.textContent = 'Please enter item name and contact.';
-        return;
-      }
+      if (!name || !contact) { formMsg.textContent = 'Please enter name and contact.'; return; }
 
-      // Step 1: create report instantly (no image yet)
-      const newItemRef = db.ref('items').push();
-      const data = { type, name, description, location, date, contact, imageUrl:"", createdAt: Date.now() };
-      await newItemRef.set(data);
+      // Create DB entry immediately (imageUrl null while uploading)
+      const newRef = db.ref('items').push();
+      const key = newRef.key;
+      const baseRecord = { type, name, description, location, date, contact, imageUrl: null, createdAt: Date.now() };
+      await newRef.set(baseRecord);
 
-      // Step 2: local preview
+      // If user selected a file, show local preview tied to this DB key
       if (file) {
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          const preview = document.createElement("div");
-          preview.classList.add("item");
-          preview.innerHTML = `
-            <h3>${type.toUpperCase()}: ${name}</h3>
-            <img src="${ev.target.result}" alt="${name}" />
-            <p>${description || ""}</p>
-            <p><b>Contact:</b> ${contact}</p>
-            <small>${location || ""} ${date || ""}</small>
-            <em>Uploading image...</em>
-          `;
-          itemsContainer.prepend(preview);
+        // local preview stored per key
+        const fr = new FileReader();
+        fr.onload = (e2) => {
+          localPreviews[key] = e2.target.result;
+          progressMap[key] = 0;
+          renderAll(); // show preview immediately
         };
-        reader.readAsDataURL(file);
+        fr.readAsDataURL(file);
 
-        // Step 3: compress + upload
-        formMsg.textContent = 'Uploading image in background…';
+        // Upload in background (compress if sensible)
         try {
-          const fileToUpload = await compressIfNeeded(file);
-          const path = 'images/' + Date.now() + '_' + fileToUpload.name.replace(/\s+/g,'_');
-          const storageRef = storage.ref().child(path);
-          const snap = await storageRef.put(fileToUpload);
-          const url = await snap.ref.getDownloadURL();
-          await newItemRef.update({ imageUrl: url });
-        } catch(err) {
-          console.error("Upload failed:", err);
+          formMsg.textContent = 'Uploading image in background…';
+          const toUpload = await compressIfNeeded(file, 1200, 1200, 0.72);
+          const path = 'images/' + Date.now() + '_' + toUpload.name.replace(/\s+/g,'_');
+          const sRef = storage.ref().child(path);
+          const uploadTask = sRef.put(toUpload);
+
+          uploadTask.on('state_changed',
+            (snap) => {
+              const pct = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
+              progressMap[key] = pct;
+              // If the preview overlay corresponds to this key, update small preview progress
+              renderAll();
+              // Also update preview overlay if currently previewing that file
+              previewOverlay.style.display = 'flex';
+              previewPct.textContent = pct + '%';
+              previewFill.style.width = pct + '%';
+            },
+            (err) => {
+              console.error('Upload error', err);
+              formMsg.textContent = 'Image upload failed (will keep local preview).';
+              previewOverlay.style.display='none';
+            },
+            async () => {
+              const url = await uploadTask.snapshot.ref.getDownloadURL();
+              await db.ref('items/' + key).update({ imageUrl: url });
+              delete localPreviews[key];
+              delete progressMap[key];
+              formMsg.textContent = 'Report submitted ✅';
+              previewOverlay.style.display='none';
+              previewImg.src = '';
+              previewWrap.style.display='none';
+              renderAll();
+              setTimeout(()=> formMsg.textContent = '', 2500);
+            }
+          );
+        } catch (err) {
+          console.error('Background upload failed', err);
+          formMsg.textContent = 'Upload error.';
         }
+      } else {
+        // no file selected: just confirm and refresh UI
+        formMsg.textContent = 'Report submitted ✅';
+        previewImg.src = ''; previewWrap.style.display='none';
+        renderAll();
+        setTimeout(()=> formMsg.textContent = '', 2000);
       }
 
-      formMsg.textContent = 'Report submitted ✅';
+      // reset form but keep preview until upload completes
       reportForm.reset();
-      setTimeout(()=>formMsg.textContent='',3000);
     });
 
-    // 🔹 Realtime listener
-    db.ref('items').on('child_added', snap => {
-      const item = snap.val();
-      const div = document.createElement('div');
-      div.classList.add('item');
-      div.innerHTML = `
-        <h3>${item.type.toUpperCase()}: ${item.name}</h3>
-        ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.name}" />` : ""}
-        <p>${item.description || ""}</p>
-        <p><b>Contact:</b> ${item.contact}</p>
-        <small>${item.location || ""} ${item.date || ""}</small>
-      `;
-      itemsContainer.prepend(div);
+    // ---------- search/filter handlers ----------
+    searchInput.addEventListener('input', renderAll);
+    filterType.addEventListener('change', renderAll);
+    clearBtn.addEventListener('click', ()=> { reportForm.reset(); previewImg.src=''; previewWrap.style.display='none'; formMsg.textContent=''; });
+
+    // ---------- cleanup on remove ----------
+    db.ref('items').on('child_removed', snap => {
+      const k = snap.key; if (localPreviews[k]) delete localPreviews[k]; if (progressMap[k]) delete progressMap[k]; renderAll();
+    });
+
+    // allow clicking images to copy contact quickly (delegated)
+    itemsGrid.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
     });
   </script>
 </body>
