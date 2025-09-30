@@ -1,48 +1,81 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Campus Lost & Found</title>
-  <link rel="stylesheet" href="https://unpkg.com/normalize.css/normalize.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    :root{
-      --accent:#2b8aef;
-      --card:#fff;
-      --muted:#666;
-      --bg:#f4f6fb;
+    :root {
+      --accent: #2b8aef;
+      --bg: #f9fafc;
+      --card: #fff;
+      --muted: #6b7280;
+      --shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
-    body{ font-family: Inter, system-ui, -apple-system, Arial; background:var(--bg); margin:0; padding:18px; color:#111;}
-    header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;}
-    h1{ margin:0; font-size:20px;}
-    .container{ max-width:980px; margin:0 auto; }
-    .btn{ background:var(--accent); color:#fff; padding:8px 12px; border-radius:8px; border:none; cursor:pointer; }
-    .btn.secondary{ background:#444; }
-    .card{ background:var(--card); padding:12px; border-radius:10px; box-shadow:0 6px 18px rgba(20,20,40,0.06); }
-    form label{ display:block; font-weight:600; margin-top:8px; font-size:13px; }
-    form input, form textarea, form select {
-      width:100%; padding:8px; border-radius:6px; border:1px solid #ddd; margin-top:6px; box-sizing:border-box;
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg); color: #111;
     }
-    .item-grid{ display:grid; grid-template-columns: repeat(auto-fill,minmax(240px,1fr)); gap:12px; }
-    .item-card{ background:#fff; padding:10px; border-radius:10px; box-shadow:0 6px 14px rgba(10,10,30,0.05); display:flex; gap:10px; align-items:flex-start; }
-    .thumb{ width:72px; height:72px; background:#eee; border-radius:8px; object-fit:cover; }
-    .meta{ flex:1; }
-    .badge{ display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; color:#fff; }
-    .badge.lost{ background:#d9534f; }
-    .badge.found{ background:#5cb85c; }
-    .small-muted{ font-size:12px; color:#666; margin-top:6px; }
-    .empty{ color:#888; padding:18px; text-align:center; }
+    header {
+      background: var(--accent); color: #fff;
+      padding: 16px 24px; font-size: 18px; font-weight: 600;
+      box-shadow: var(--shadow);
+    }
+    .container {
+      max-width: 960px; margin: 24px auto; padding: 0 16px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    }
+    .card {
+      background: var(--card); border-radius: 12px; padding: 16px;
+      box-shadow: var(--shadow);
+    }
+    h3 { margin-top: 0; font-size: 18px; }
+    label { font-size: 13px; font-weight: 600; margin-top: 10px; display: block; }
+    input, textarea, select {
+      width: 100%; padding: 8px; margin-top: 6px;
+      border: 1px solid #ddd; border-radius: 8px; font-size: 14px;
+    }
+    button {
+      padding: 8px 14px; border: none; border-radius: 8px;
+      background: var(--accent); color: #fff; font-weight: 600;
+      cursor: pointer; margin-top: 12px;
+    }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .item-grid {
+      display: grid; gap: 14px;
+    }
+    .item-card {
+      display: flex; gap: 12px; padding: 12px;
+      border-radius: 10px; background: #fff; box-shadow: var(--shadow);
+      align-items: flex-start;
+    }
+    .thumb {
+      width: 70px; height: 70px; border-radius: 8px;
+      object-fit: cover; background: #eee;
+    }
+    .meta { flex: 1; }
+    .meta h4 { margin: 0 0 4px; font-size: 15px; }
+    .badge {
+      display: inline-block; padding: 3px 8px;
+      border-radius: 999px; font-size: 12px; font-weight: 600;
+      color: #fff; margin-top: 6px;
+    }
+    .badge.lost { background: #e74c3c; }
+    .badge.found { background: #27ae60; }
+    .small-muted { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    .empty { text-align: center; color: var(--muted); padding: 20px; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <header>
-      <h1>Campus Lost & Found — Demo</h1>
-    </header>
+  <header>Campus Lost & Found</header>
 
+  <div class="container">
     <!-- Report Form -->
     <div class="card">
-      <h3>Report Lost or Found</h3>
+      <h3>Report Item</h3>
       <form id="reportForm">
         <label>Type</label>
         <select id="type" required>
@@ -54,28 +87,24 @@
         <input id="itemName" type="text" required placeholder="e.g., Black wallet" />
 
         <label>Description</label>
-        <textarea id="description" placeholder="Any details: brand, marks, contents..."></textarea>
+        <textarea id="description" placeholder="Details about the item..."></textarea>
 
-        <label>Contact (email or phone)</label>
-        <input id="contact" type="text" required placeholder="john@example.com or +2547..." />
+        <label>Contact</label>
+        <input id="contact" type="text" required placeholder="email or phone" />
 
         <label>Photo (optional)</label>
         <input id="photo" type="file" accept="image/*" />
 
-        <div style="margin-top:10px;">
-          <button class="btn" type="submit">Submit Report</button>
-        </div>
-        <div id="formMsg" class="small-muted" style="margin-top:8px;"></div>
+        <button type="submit" id="submitBtn">Submit</button>
+        <div id="formMsg" class="small-muted"></div>
       </form>
     </div>
 
-    <div style="height:12px"></div>
-
-    <!-- Items -->
+    <!-- Items List -->
     <div class="card">
-      <h3>Items</h3>
+      <h3>Reported Items</h3>
       <div id="itemsContainer" class="item-grid"></div>
-      <div id="itemsEmpty" class="empty" style="display:none;">No items found.</div>
+      <div id="itemsEmpty" class="empty">No items reported yet.</div>
     </div>
   </div>
 
@@ -100,133 +129,101 @@
     const db = firebase.database();
     const storage = firebase.storage();
 
-    const reportForm = document.getElementById("reportForm");
+    const form = document.getElementById("reportForm");
+    const msg = document.getElementById("formMsg");
+    const submitBtn = document.getElementById("submitBtn");
     const itemsContainer = document.getElementById("itemsContainer");
     const itemsEmpty = document.getElementById("itemsEmpty");
-    const formMsg = document.getElementById("formMsg");
 
     // Compress image before upload
     function compressImage(file, maxWidth, maxHeight, callback) {
       const reader = new FileReader();
       reader.readAsDataURL(file);
-      reader.onload = (event) => {
+      reader.onload = (e) => {
         const img = new Image();
-        img.src = event.target.result;
+        img.src = e.target.result;
         img.onload = () => {
           const canvas = document.createElement("canvas");
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > maxWidth) {
-              height *= maxWidth / width;
-              width = maxWidth;
-            }
-          } else {
-            if (height > maxHeight) {
-              width *= maxHeight / height;
-              height = maxHeight;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, width, height);
-
-          canvas.toBlob((blob) => {
-            callback(blob);
-          }, "image/jpeg", 0.7);
+          let { width, height } = img;
+          if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; }
+          if (height > maxHeight) { width *= maxHeight / height; height = maxHeight; }
+          canvas.width = width; canvas.height = height;
+          canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+          canvas.toBlob(blob => callback(blob), "image/jpeg", 0.7);
         };
       };
     }
 
-    // Add item card to UI instantly
-    function addItemToUI(item) {
+    // Render one item
+    function renderItem(item) {
       const card = document.createElement("div");
       card.className = "item-card";
-      const img = document.createElement("img");
-      img.className = "thumb";
-      img.src = item.imageUrl || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='72' height='72'><rect width='100%' height='100%' fill='%23eee'/></svg>";
-      const meta = document.createElement("div");
-      meta.className = "meta";
-      meta.innerHTML = `
-        <h4>${item.type.toUpperCase()}: ${item.name}</h4>
-        <div>${item.description || ""}</div>
-        <div class="small-muted">Contact: ${item.contact}</div>
-        <div class="badge ${item.type === "lost" ? "lost" : "found"}">${item.type}</div>
+      card.innerHTML = `
+        <img class="thumb" src="${item.imageUrl || "https://via.placeholder.com/70"}" alt="${item.name}">
+        <div class="meta">
+          <h4>${item.name}</h4>
+          <div class="small-muted">${item.description || ""}</div>
+          <div class="small-muted">Contact: ${item.contact}</div>
+          <span class="badge ${item.type}">${item.type.toUpperCase()}</span>
+        </div>
       `;
-      card.appendChild(img);
-      card.appendChild(meta);
-      itemsContainer.prepend(card);
-      itemsEmpty.style.display = "none";
+      return card;
     }
 
-    // Submit form
-    reportForm.onsubmit = (e) => {
+    // Subscribe to DB
+    db.ref("items").on("value", snap => {
+      itemsContainer.innerHTML = "";
+      if (!snap.exists()) {
+        itemsEmpty.style.display = "block"; return;
+      }
+      itemsEmpty.style.display = "none";
+      Object.values(snap.val()).reverse().forEach(item => {
+        itemsContainer.appendChild(renderItem(item));
+      });
+    });
+
+    // Handle form submit
+    form.onsubmit = e => {
       e.preventDefault();
-      formMsg.textContent = "Processing...";
+      submitBtn.disabled = true;
+      msg.textContent = "Submitting...";
+
       const type = document.getElementById("type").value;
       const name = document.getElementById("itemName").value.trim();
       const description = document.getElementById("description").value.trim();
       const contact = document.getElementById("contact").value.trim();
-      const photoInput = document.getElementById("photo");
-      const file = photoInput.files[0];
+      const file = document.getElementById("photo").files[0];
 
       if (!name || !contact) {
-        formMsg.textContent = "Please enter item name and contact.";
-        return;
+        msg.textContent = "Item name and contact required.";
+        submitBtn.disabled = false; return;
       }
 
       const saveItem = (imageUrl) => {
-        const newItemRef = db.ref("items").push();
+        const ref = db.ref("items").push();
         const data = { type, name, description, contact, imageUrl, createdAt: Date.now() };
-        newItemRef.set(data).then(() => {
-          formMsg.textContent = "Report submitted ✅";
-          addItemToUI(data);
-          reportForm.reset();
-          setTimeout(() => (formMsg.textContent = ""), 3000);
+        ref.set(data).then(() => {
+          msg.textContent = "Report submitted ✅";
+          form.reset();
+          submitBtn.disabled = false;
+          setTimeout(() => msg.textContent = "", 2000);
         });
       };
 
       if (file) {
-        compressImage(file, 800, 800, (compressedBlob) => {
+        compressImage(file, 800, 800, (blob) => {
           const path = "images/" + Date.now() + "_" + file.name.replace(/\s+/g, "_");
-          const ref = storage.ref().child(path);
-          const uploadTask = ref.put(compressedBlob);
-
+          const uploadTask = storage.ref(path).put(blob);
           uploadTask.on("state_changed",
-            (snap) => {
-              const progress = Math.round((snap.bytesTransferred / snap.totalBytes) * 100);
-              formMsg.textContent = `Uploading... ${progress}%`;
-            },
-            (err) => {
-              console.error(err);
-              formMsg.textContent = "Upload failed.";
-            },
-            () => {
-              uploadTask.snapshot.ref.getDownloadURL().then((url) => {
-                saveItem(url);
-              });
-            }
+            snap => msg.textContent = `Uploading... ${Math.round((snap.bytesTransferred / snap.totalBytes) * 100)}%`,
+            err => { console.error(err); msg.textContent = "Upload failed."; submitBtn.disabled = false; },
+            () => uploadTask.snapshot.ref.getDownloadURL().then(url => saveItem(url))
           );
         });
       } else {
         saveItem(null);
       }
     };
-
-    // Subscribe to DB updates
-    db.ref("items").on("value", (snap) => {
-      itemsContainer.innerHTML = "";
-      if (!snap.exists()) {
-        itemsEmpty.style.display = "block";
-        return;
-      }
-      itemsEmpty.style.display = "none";
-      const items = snap.val();
-      Object.values(items).forEach(addItemToUI);
-    });
   </script>
 </body>
 </html>
