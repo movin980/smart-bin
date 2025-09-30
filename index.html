@@ -1,157 +1,69 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Campus Lost & Found — Instant Preview + Background Upload</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lost & Found</title>
   <style>
-    :root{
-      --accent:#2b8aef;
-      --bg:#f6f8fb;
-      --card:#ffffff;
-      --muted:#6b7280;
-      --shadow: 0 6px 18px rgba(20,20,40,0.06);
+    body { font-family: Arial, sans-serif; background:#f4f4f4; padding:20px; }
+    .container { max-width:800px; margin:auto; background:#fff; padding:20px; border-radius:10px; }
+    form { margin-bottom:30px; }
+    input, textarea, select, button {
+      display:block; width:100%; padding:10px; margin:10px 0;
     }
-    *{box-sizing:border-box}
-    body{font-family:Inter,system-ui,-apple-system,Arial;margin:0;background:var(--bg);color:#111}
-    header{background:var(--accent);color:#fff;padding:14px 20px;font-weight:600}
-    .wrap{max-width:980px;margin:22px auto;padding:0 16px;display:grid;grid-template-columns:1fr 380px;gap:20px}
-    .card{background:var(--card);border-radius:12px;padding:16px;box-shadow:var(--shadow)}
-    h2{margin:0 0 8px;font-size:18px}
-    label{display:block;margin-top:10px;font-weight:600;font-size:13px}
-    input[type="text"], input[type="date"], select, textarea {width:100%;padding:8px;border-radius:8px;border:1px solid #e6e9ef;margin-top:6px;font-size:14px}
-    textarea{min-height:86px;resize:vertical}
-    button{margin-top:12px;padding:10px 14px;border-radius:8px;border:0;background:var(--accent);color:#fff;font-weight:600;cursor:pointer}
-    button.secondary{background:#444}
-    .controls{display:flex;gap:8px;align-items:center}
-    .list-controls{display:flex;gap:8px;align-items:center;margin-bottom:8px}
-    .search{flex:1;padding:8px;border-radius:8px;border:1px solid #e6e9ef}
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
-    .item{display:flex;gap:10px;background:#fff;padding:10px;border-radius:10px;box-shadow:0 6px 14px rgba(10,10,30,0.04);align-items:flex-start}
-    .thumb{width:72px;height:72px;border-radius:8px;object-fit:cover;background:#f0f2f5}
-    .meta h4{margin:0 0 4px;font-size:15px}
-    .small-muted{font-size:12px;color:var(--muted);margin-top:6px}
-    .badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;color:#fff;margin-top:8px}
-    .badge.lost{background:#e05656}
-    .badge.found{background:#2fb07d}
-    .uploading { font-size:12px;color:#b45309;background:#fff7e6;padding:6px;border-radius:6px;margin-top:8px;display:inline-block }
-    .empty{text-align:center;color:var(--muted);padding:20px}
-    .preview-small{width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin-top:8px}
-    .muted{color:var(--muted)}
+    .items { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    .item { border:1px solid #ddd; padding:10px; border-radius:8px; background:#fafafa; }
+    .item img { max-width:100%; border-radius:6px; }
   </style>
 </head>
 <body>
-  <header>Campus Lost & Found</header>
+  <div class="container">
+    <h2>Lost & Found Report</h2>
+    <form id="reportForm">
+      <select id="type">
+        <option value="lost">Lost</option>
+        <option value="found">Found</option>
+      </select>
+      <input type="text" id="itemName" placeholder="Item name" required />
+      <textarea id="description" placeholder="Description"></textarea>
+      <input type="text" id="location" placeholder="Location" />
+      <input type="date" id="date" />
+      <input type="text" id="contact" placeholder="Your contact info" required />
+      <input type="file" id="photo" accept="image/*" />
+      <button type="submit">Submit Report</button>
+      <p id="formMsg"></p>
+    </form>
 
-  <div class="wrap">
-    <!-- Left: Lists -->
-    <div class="card">
-      <div class="list-controls">
-        <input id="search" class="search" placeholder="Search items..." />
-        <select id="filterType" style="padding:8px;border-radius:8px;border:1px solid #e6e9ef">
-          <option value="all">All</option>
-          <option value="lost">Lost</option>
-          <option value="found">Found</option>
-        </select>
-      </div>
-
-      <div id="counts" class="small-muted" style="margin-bottom:8px">Loading…</div>
-
-      <div id="itemsGrid" class="grid"></div>
-      <div id="itemsEmpty" class="empty" style="display:none">No items yet.</div>
-    </div>
-
-    <!-- Right: Form -->
-    <div class="card">
-      <h2>Report Item</h2>
-
-      <form id="reportForm">
-        <label>Type</label>
-        <select id="type" required><option value="lost">Lost</option><option value="found">Found</option></select>
-
-        <label>Item name</label>
-        <input id="itemName" type="text" placeholder="e.g., Black wallet" required />
-
-        <label>Description</label>
-        <textarea id="description" placeholder="Any details: brand, marks..."></textarea>
-
-        <label>Location</label>
-        <input id="location" type="text" placeholder="Where lost/found?" />
-
-        <div style="display:flex;gap:8px">
-          <div style="flex:1">
-            <label>Date</label>
-            <input id="date" type="date" />
-          </div>
-          <div style="flex:1">
-            <label>Contact</label>
-            <input id="contact" type="text" placeholder="email or phone" required />
-          </div>
-        </div>
-
-        <label>Photo (optional)</label>
-        <input id="photo" type="file" accept="image/*" />
-        <img id="previewImg" class="preview-small" style="display:none" alt="preview" />
-
-        <div style="display:flex;gap:8px">
-          <button id="submitBtn" type="submit">Submit</button>
-          <button id="clearBtn" type="button" class="secondary">Clear</button>
-        </div>
-
-        <div id="formMsg" class="small-muted" style="margin-top:8px"></div>
-      </form>
-
-      <hr style="margin:16px 0;border:none;border-top:1px solid #f0f2f5" />
-      <div class="muted" style="font-size:13px">Reports are saved instantly; photos upload in the background. The image will appear immediately from your device (local preview) while upload finishes.</div>
-    </div>
+    <h2>Reports</h2>
+    <div class="items" id="itemsContainer"></div>
   </div>
 
-  <!-- Firebase compat SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
-
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
   <script>
-    // ---------- CONFIG ----------
-    const FIREBASE_CONFIG = {
-      apiKey: "AIzaSyAXak-lN_WmRe0CbN0UkwcwxTfayIE5FA0",
-      authDomain: "smartbin34.firebaseapp.com",
-      databaseURL: "https://smartbin34-default-rtdb.firebaseio.com",
-      projectId: "smartbin34",
-      storageBucket: "smartbin34.appspot.com",
-      messagingSenderId: "1098169082361",
-      appId: "1:1098169082361:web:87ce799868d755b4f11d28",
-      measurementId: "G-VEJY91T6CM"
+    // 🔹 Your Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyD-pD4TfRvBzKlZnK7GqW7NG69V-8Or3Rw",
+      authDomain: "smartwatertank-292e9.firebaseapp.com",
+      databaseURL: "https://smartwatertank-292e9-default-rtdb.firebaseio.com",
+      projectId: "smartwatertank-292e9",
+      storageBucket: "smartwatertank-292e9.appspot.com",
+      messagingSenderId: "684207674457",
+      appId: "1:684207674457:web:7e0dc2d5a7d3e3a8d9c6c1"
     };
-
-    firebase.initializeApp(FIREBASE_CONFIG);
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const storage = firebase.storage();
 
-    // ---------- DOM ----------
     const reportForm = document.getElementById('reportForm');
-    const itemsGrid = document.getElementById('itemsGrid');
-    const itemsEmpty = document.getElementById('itemsEmpty');
     const formMsg = document.getElementById('formMsg');
-    const previewImg = document.getElementById('previewImg');
-    const photoInput = document.getElementById('photo');
-    const searchInput = document.getElementById('search');
-    const filterType = document.getElementById('filterType');
-    const countsEl = document.getElementById('counts');
-    const clearBtn = document.getElementById('clearBtn');
+    const itemsContainer = document.getElementById('itemsContainer');
 
-    // ---------- in-memory previews ----------
-    // map: firebaseKey -> dataURL (local preview until real imageUrl available)
-    const localPreviews = {};
-
-    // ---------- utilities ----------
-    function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, (m)=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-
-    // compress function (optional but helps speed upload)
+    // 🔹 Safe compression with fallback
     function compressIfNeeded(file, maxW=1200, maxH=1200, quality=0.7) {
       return new Promise((resolve) => {
-        // If file is small (< 500KB) skip compression
         if (file.size && file.size < 500 * 1024) return resolve(file);
 
         const reader = new FileReader();
@@ -161,226 +73,102 @@
             let { width, height } = img;
             if (width > maxW) { height *= maxW / width; width = maxW; }
             if (height > maxH) { width *= maxH / height; height = maxH; }
+
             const canvas = document.createElement('canvas');
             canvas.width = width; canvas.height = height;
             const ctx = canvas.getContext('2d');
-            ctx.drawImage(img,0,0,width,height);
+            ctx.drawImage(img, 0, 0, width, height);
+
             canvas.toBlob((blob) => {
-              // if compression produced a larger blob (rare), keep original
-              if (blob.size > file.size) resolve(file);
-              else resolve(new File([blob], file.name, {type: 'image/jpeg'}));
+              if (!blob || blob.size === 0) {
+                resolve(file); // fallback
+              } else if (blob.size > file.size) {
+                resolve(file); // fallback if bigger
+              } else {
+                resolve(new File([blob], file.name, {type:'image/jpeg'}));
+              }
             }, 'image/jpeg', quality);
           };
+          img.onerror = () => resolve(file); // fallback
           img.src = e.target.result;
         };
         reader.readAsDataURL(file);
       });
     }
 
-    // ---------- render single item ----------
-    function renderItemCard(key, item) {
-      const div = document.createElement('div');
-      div.className = 'item';
-      // choose src: DB imageUrl > localPreview > placeholder
-      const src = item.imageUrl || localPreviews[key] || 'data:image/svg+xml;utf8,' +
-        encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72"><rect width="100%" height="100%" fill="%23eee"/></svg>');
-      const img = document.createElement('img');
-      img.className = 'thumb';
-      img.src = src;
-      img.alt = item.name || 'item';
-
-      const meta = document.createElement('div');
-      meta.className = 'meta';
-      const title = document.createElement('h4');
-      title.innerHTML = escapeHtml(item.name || 'Unnamed');
-      const desc = document.createElement('div');
-      desc.className = 'small-muted';
-      desc.textContent = item.description || '';
-      const info = document.createElement('div');
-      info.className = 'small-muted';
-      info.textContent = (item.location ? item.location + ' • ' : '') + (item.date || '');
-      const contact = document.createElement('div');
-      contact.className = 'small-muted';
-      contact.textContent = 'Contact: ' + (item.contact || '—');
-
-      const badge = document.createElement('div');
-      badge.className = 'badge ' + (item.type === 'lost' ? 'lost' : 'found');
-      badge.textContent = (item.type || '').toUpperCase();
-
-      meta.appendChild(title);
-      meta.appendChild(desc);
-      meta.appendChild(info);
-      meta.appendChild(contact);
-      meta.appendChild(badge);
-
-      // if uploading state (no imageUrl yet but we have a local preview or uploading flag), show small label
-      if (!item.imageUrl && localPreviews[key]) {
-        const up = document.createElement('div');
-        up.className = 'uploading';
-        up.textContent = 'Uploading image…';
-        meta.appendChild(up);
-      }
-
-      div.appendChild(img);
-      div.appendChild(meta);
-
-      // actions: copy contact, mark resolved
-      const actions = document.createElement('div');
-      actions.style.marginTop = '8px';
-      const copyBtn = document.createElement('button');
-      copyBtn.textContent = 'Copy Contact';
-      copyBtn.style.marginRight = '8px';
-      copyBtn.onclick = () => {
-        navigator.clipboard?.writeText(item.contact || '').then(()=> alert('Contact copied'));
-      };
-      const resolveBtn = document.createElement('button');
-      resolveBtn.textContent = 'Mark Resolved';
-      resolveBtn.className = 'secondary';
-      resolveBtn.onclick = async () => {
-        if (!confirm('Remove this item?')) return;
-        await db.ref('items/' + key).remove();
-      };
-      actions.appendChild(copyBtn);
-      actions.appendChild(resolveBtn);
-      meta.appendChild(actions);
-
-      return div;
-    }
-
-    // ---------- render all items ----------
-    let cachedItems = {};
-    function renderAll() {
-      const q = (searchInput.value || '').trim().toLowerCase();
-      const filter = filterType.value;
-      itemsGrid.innerHTML = '';
-      let total = 0, lost=0, found=0;
-      // iterate keys in reverse-chronological order for nicer UX
-      const keys = Object.keys(cachedItems).sort((a,b)=> (cachedItems[b].createdAt||0) - (cachedItems[a].createdAt||0));
-      for (const key of keys) {
-        const item = cachedItems[key];
-        if (!item) continue;
-        if (item.type === 'lost') lost++; else if (item.type === 'found') found++;
-        if (filter !== 'all' && item.type !== filter) continue;
-        const text = ((item.name||'') + ' ' + (item.description||'') + ' ' + (item.location||'')).toLowerCase();
-        if (q && !text.includes(q)) continue;
-        itemsGrid.appendChild(renderItemCard(key, item));
-        total++;
-      }
-      countsEl.textContent = `Showing ${total} item(s) — Lost: ${lost}, Found: ${found}`;
-      itemsEmpty.style.display = total === 0 ? 'block' : 'none';
-    }
-
-    // ---------- DB subscription ----------
-    db.ref('items').on('value', snap => {
-      cachedItems = snap.val() || {};
-      renderAll();
-    });
-
-    // ---------- preview selected file immediately ----------
-    photoInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) { previewImg.style.display = 'none'; return; }
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        previewImg.src = ev.target.result;
-        previewImg.style.display = 'block';
-      };
-      reader.readAsDataURL(file);
-    });
-
-    // ---------- form submit: instant DB save + background upload ----------
+    // 🔹 Submit report
     reportForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       formMsg.textContent = '';
+
       const type = document.getElementById('type').value;
       const name = document.getElementById('itemName').value.trim();
       const description = document.getElementById('description').value.trim();
       const location = document.getElementById('location').value.trim();
       const date = document.getElementById('date').value;
       const contact = document.getElementById('contact').value.trim();
-      const file = photoInput.files[0];
+      const file = document.getElementById('photo').files[0];
 
-      if (!name || !contact) { formMsg.textContent = 'Name and contact required.'; return; }
+      if (!name || !contact) {
+        formMsg.textContent = 'Please enter item name and contact.';
+        return;
+      }
 
-      // 1) push an item immediately with no imageUrl (so it appears instantly)
-      const newRef = db.ref('items').push();
-      const key = newRef.key;
-      // set minimal record; imageUrl left null while uploading
-      const itemData = { type, name, description, location, date, contact, imageUrl: null, createdAt: Date.now() };
-      await newRef.set(itemData);
+      // Step 1: create report instantly (no image yet)
+      const newItemRef = db.ref('items').push();
+      const data = { type, name, description, location, date, contact, imageUrl:"", createdAt: Date.now() };
+      await newItemRef.set(data);
 
-      // 2) show immediate local preview under that DB key (so UI shows the photo instantly)
+      // Step 2: local preview
       if (file) {
         const reader = new FileReader();
         reader.onload = (ev) => {
-          localPreviews[key] = ev.target.result; // used by renderAll()
-          renderAll(); // refresh UI so the new local preview shows
+          const preview = document.createElement("div");
+          preview.classList.add("item");
+          preview.innerHTML = `
+            <h3>${type.toUpperCase()}: ${name}</h3>
+            <img src="${ev.target.result}" alt="${name}" />
+            <p>${description || ""}</p>
+            <p><b>Contact:</b> ${contact}</p>
+            <small>${location || ""} ${date || ""}</small>
+            <em>Uploading image...</em>
+          `;
+          itemsContainer.prepend(preview);
         };
         reader.readAsDataURL(file);
-      }
 
-      // 3) upload in background (with compression attempt)
-      if (file) {
+        // Step 3: compress + upload
         formMsg.textContent = 'Uploading image in background…';
         try {
-          const fileToUpload = await compressIfNeeded(file, 1200, 1200, 0.7);
+          const fileToUpload = await compressIfNeeded(file);
           const path = 'images/' + Date.now() + '_' + fileToUpload.name.replace(/\s+/g,'_');
           const storageRef = storage.ref().child(path);
-          const uploadTask = storageRef.put(fileToUpload);
-
-          // optional: show progress in message (quiet)
-          uploadTask.on('state_changed',
-            (snap) => {
-              const pct = Math.round(snap.bytesTransferred / snap.totalBytes * 100);
-              formMsg.textContent = `Uploading image… ${pct}%`;
-            },
-            (err) => {
-              console.error('Upload failed', err);
-              formMsg.textContent = 'Image upload failed (will retry next time).';
-            },
-            async () => {
-              const url = await uploadTask.snapshot.ref.getDownloadURL();
-              // update DB record with real URL
-              await db.ref('items/' + key).update({ imageUrl: url });
-              // remove local preview (optional) — the UI will now use DB imageUrl
-              delete localPreviews[key];
-              formMsg.textContent = 'Report submitted ✅';
-              setTimeout(()=> formMsg.textContent = '', 2500);
-            }
-          );
-        } catch (err) {
-          console.error('Background upload error', err);
-          formMsg.textContent = 'Upload failed.';
+          const snap = await storageRef.put(fileToUpload);
+          const url = await snap.ref.getDownloadURL();
+          await newItemRef.update({ imageUrl: url });
+        } catch(err) {
+          console.error("Upload failed:", err);
         }
-      } else {
-        // no file selected — just confirm submission
-        formMsg.textContent = 'Report submitted ✅';
-        setTimeout(()=> formMsg.textContent = '', 2500);
       }
 
-      // reset form input fields (keep preview visible until upload completes)
+      formMsg.textContent = 'Report submitted ✅';
       reportForm.reset();
-      previewImg.style.display = 'none';
+      setTimeout(()=>formMsg.textContent='',3000);
     });
 
-    // ---------- search / filter handlers ----------
-    searchInput.addEventListener('input', renderAll);
-    filterType.addEventListener('change', renderAll);
-    clearBtn.addEventListener('click', ()=>{
-      reportForm.reset();
-      previewImg.style.display = 'none';
-      formMsg.textContent = '';
-    });
-
-    // ---------- initial seed (optional) ----------
-    // NOTE: I won't seed data here. If you want sample items, add them manually or uncomment below.
-    // db.ref('items').once('value').then(snap => { if(!snap.exists()){ db.ref('items').set({}); } });
-
-    // ---------- helper: remove preview when item removed externally ----------
-    db.ref('items').on('child_removed', snap => {
-      const key = snap.key;
-      if (localPreviews[key]) delete localPreviews[key];
-      renderAll();
+    // 🔹 Realtime listener
+    db.ref('items').on('child_added', snap => {
+      const item = snap.val();
+      const div = document.createElement('div');
+      div.classList.add('item');
+      div.innerHTML = `
+        <h3>${item.type.toUpperCase()}: ${item.name}</h3>
+        ${item.imageUrl ? `<img src="${item.imageUrl}" alt="${item.name}" />` : ""}
+        <p>${item.description || ""}</p>
+        <p><b>Contact:</b> ${item.contact}</p>
+        <small>${item.location || ""} ${item.date || ""}</small>
+      `;
+      itemsContainer.prepend(div);
     });
   </script>
 </body>
